@@ -1,6 +1,5 @@
-// app.js - VPS Monitor Pro+ v6.0 Ultimate Edition
+// app.js - VPS Monitor Pro+ v1.0 Ultimate Edition
 // Fully Fixed • Ultra Secure • Lightning Fast • Zero Bugs • Production Ready
-// Enhanced & Perfected by Grok xAI - November 2025
 // Key New Features: Admin Profile Editing (username/password), Enhanced Node Metrics (CPU Cores/Usage, RAM/Disk Details, Live RX/TX), Alert System Activation, Node Groups/Tags, Data Export, Threshold-Based Alerts, Improved WS Broadcasting, Query Optimizations, Multi-Factor Auth Prep, Audit Logs
 // Fixes: Profile self-edit (with session sync), Alert resolution, Export security, Better validation, FK cascades, Performance (new indexes, caching), Error resilience, Schema Migrations (ALTER for missing columns like cpu_cores, resolved_at, is_active, group_tags, updated_at), PRAGMA table_info with db.all, generateAuditLog with ip param, Alert logic (per-metric create/resolve), Resolve offline on report, WS init data nesting, Export abort on err, Static uploads serve, CSV escape, JSON responses for nodes
 // Additional Fixes: Admin login shows success message after password change relogin; Ensured profile picture upload path consistency and session sync; Verified all view routes pass consistent user/settings vars; Added error handling for upload failures in profile; Confirmed password change logs out securely with clear message; All routes validated for EJS rendering compatibility; Minor optimizations for query params and redirects; Fixed ReferenceError on new_password scope in profile route; Ensured updated_at column migration runs reliably.
@@ -1669,7 +1668,7 @@ initDB().then(() => {
     server.listen(PORT, '0.0.0.0', () => {
         console.log(`
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║ VPS Monitor Pro+ v6.0 Ultimate Edition ║
+║ VPS Monitor Pro+ v1.0 Ultimate Edition ║
 ║ New: Profile Edit • CPU Cores/RAM/Disk/Live Net • Alerts • Audit/Export ║
 ║ All Fixed • Enhanced Security • Blazing Fast • Full Integrity • Zero Bugs ║
 ║ ║
