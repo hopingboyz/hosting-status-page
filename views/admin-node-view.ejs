@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= node.name %> - VPS Monitor Pro+</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: <%= settings.primary_color || '#6366f1' %>;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #3b82f6;
+        }
+        .sidebar {
+            background: #1a1c23;
+            min-height: 100vh;
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: #b0b3b8;
+            padding: 0.75rem 1rem;
+            margin: 0.25rem 0;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: var(--primary-color);
+            color: white;
+        }
+        .metric-card { 
+            border-left: 4px solid var(--primary-color);
+            transition: all 0.3s ease;
+        }
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .status-online { color: var(--success-color); }
+        .status-offline { color: var(--danger-color); }
+        .progress-thin {
+            height: 6px;
+            border-radius: 3px;
+        }
+        .resource-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .resource-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid #e9ecef;
+        }
+        .usage-high { color: var(--danger-color); }
+        .usage-medium { color: var(--warning-color); }
+        .usage-low { color: var(--success-color); }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        .stat-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        .network-stats {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        .system-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .info-label {
+            color: #6c757d;
+            font-weight: 500;
+        }
+        .info-value {
+            color: #495057;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-0">
+                <div class="p-3">
+                    <h4 class="text-center mb-4">
+                        <i class="fas fa-server me-2"></i>VPS Monitor
+                    </h4>
+                    
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin">
+                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/admin/nodes">
+                                <i class="fas fa-server me-2"></i>Nodes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/alerts">
+                                <i class="fas fa-bell me-2"></i>Alerts
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/users">
+                                <i class="fas fa-users me-2"></i>Users
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/settings">
+                                <i class="fas fa-cog me-2"></i>Settings
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/audit">
+                                <i class="fas fa-clipboard-list me-2"></i>Audit Logs
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/profile">
+                                <i class="fas fa-user me-2"></i>Profile
+                            </a>
+                        </li>
+                        <li class="nav-item mt-3">
+                            <a class="nav-link text-danger" href="/admin/logout">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-sm-auto px-4">
+                <!-- Navbar -->
+                <nav class="navbar navbar-light bg-white border-bottom py-3">
+                    <div class="container-fluid">
+                        <div class="d-flex align-items-center">
+                            <a href="/admin/nodes" class="btn btn-outline-secondary btn-sm me-2">
+                                <i class="fas fa-arrow-left"></i>
+                            </a>
+                            <span class="navbar-brand">
+                                <i class="fas fa-server me-2"></i><%= node.name %>
+                            </span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span class="me-3">Welcome, <%= user.full_name %></span>
+                            <img src="<%= user.avatar || '/img/default-avatar.png' %>" alt="Avatar" class="rounded-circle" width="40" height="40">
+                        </div>
+                    </div>
+                </nav>
+
+                <!-- Node Header -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <h4 class="card-title mb-2">
+                                            <%= node.name %>
+                                            <% if (node.is_online) { %>
+                                                <span class="badge bg-success ms-2">
+                                                    <i class="fas fa-circle me-1"></i>Online
+                                                </span>
+                                            <% } else { %>
+                                                <span class="badge bg-danger ms-2">
+                                                    <i class="fas fa-circle me-1"></i>Offline
+                                                </span>
+                                            <% } %>
+                                            <% if (node.group_tags) { %>
+                                                <span class="badge bg-primary ms-1">
+                                                    <i class="fas fa-tags me-1"></i><%= node.group_tags %>
+                                                </span>
+                                            <% } %>
+                                        </h4>
+                                        <div class="row text-muted">
+                                            <div class="col-auto">
+                                                <i class="fas fa-globe me-1"></i>
+                                                <%= node.hostname || node.ip_address || 'N/A' %>
+                                                <% if (node.ip_alias) { %>
+                                                    (<%= node.ip_alias %>)
+                                                <% } %>
+                                            </div>
+                                            <div class="col-auto">
+                                                <i class="fas fa-map-marker-alt me-1"></i>
+                                                <%= node.location || 'Unknown location' %>
+                                            </div>
+                                            <div class="col-auto">
+                                                <i class="fas fa-satellite-dish me-1"></i>
+                                                <%= node.monitor_type || 'agent' %>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-end">
+                                        <div class="btn-group">
+                                            <a href="/admin/nodes/edit/<%= node.id %>" class="btn btn-outline-primary">
+                                                <i class="fas fa-edit me-2"></i>Edit
+                                            </a>
+                                            <% if (user.role === 'admin') { %>
+                                            <button class="btn btn-outline-danger delete-node" data-id="<%= node.id %>" data-name="<%= node.name %>">
+                                                <i class="fas fa-trash me-2"></i>Delete
+                                            </button>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Current Stats -->
+                <% if (stats.length > 0) { 
+                    const latest = stats[0];
+                %>
+                <div class="row mt-4">
+                    <div class="col-12 mb-3">
+                        <h4><i class="fas fa-chart-line me-2"></i>Current System Metrics</h4>
+                    </div>
+                    
+                    <!-- CPU Usage -->
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card metric-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="card-title text-muted mb-2">
+                                            <i class="fas fa-microchip me-1"></i>CPU Usage
+                                        </h6>
+                                        <h3 class="<%= getUsageClass(latest.cpu_usage) %> mb-1">
+                                            <%= (latest.cpu_usage || 0).toFixed(1) %>%
+                                        </h3>
+                                        <small class="text-muted">
+                                            <%= latest.cpu_cores || 1 %> Cores
+                                        </small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge stat-badge <%= getUsageClass(latest.cpu_usage) %>">
+                                            <%= getUsageLevel(latest.cpu_usage) %>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="progress progress-thin mt-2">
+                                    <div class="progress-bar bg-primary" 
+                                         style="width: <%= Math.min(latest.cpu_usage || 0, 100) %>%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Memory Usage -->
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card metric-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="card-title text-muted mb-2">
+                                            <i class="fas fa-memory me-1"></i>Memory
+                                        </h6>
+                                        <h3 class="<%= getUsageClass(latest.memory_usage) %> mb-1">
+                                            <%= (latest.memory_usage || 0).toFixed(1) %>%
+                                        </h3>
+                                        <small class="text-muted">
+                                            <%= formatBytes(latest.memory_total) %> Total
+                                        </small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge stat-badge <%= getUsageClass(latest.memory_usage) %>">
+                                            <%= getUsageLevel(latest.memory_usage) %>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="progress progress-thin mt-2">
+                                    <div class="progress-bar bg-success" 
+                                         style="width: <%= Math.min(latest.memory_usage || 0, 100) %>%"></div>
+                                </div>
+                                <div class="mt-2 small">
+                                    <span class="text-muted">Used: <%= formatBytes((latest.memory_usage / 100) * latest.memory_total) %></span>
+                                    <span class="text-muted float-end">Free: <%= formatBytes(latest.memory_free) %></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Disk Usage -->
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card metric-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="card-title text-muted mb-2">
+                                            <i class="fas fa-hdd me-1"></i>Disk
+                                        </h6>
+                                        <h3 class="<%= getUsageClass(latest.disk_usage) %> mb-1">
+                                            <%= (latest.disk_usage || 0).toFixed(1) %>%
+                                        </h3>
+                                        <small class="text-muted">
+                                            <%= formatBytes(latest.disk_total) %> Total
+                                        </small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge stat-badge <%= getUsageClass(latest.disk_usage) %>">
+                                            <%= getUsageLevel(latest.disk_usage) %>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="progress progress-thin mt-2">
+                                    <div class="progress-bar bg-warning" 
+                                         style="width: <%= Math.min(latest.disk_usage || 0, 100) %>%"></div>
+                                </div>
+                                <div class="mt-2 small">
+                                    <span class="text-muted">Used: <%= formatBytes((latest.disk_usage / 100) * latest.disk_total) %></span>
+                                    <span class="text-muted float-end">Free: <%= formatBytes(latest.disk_free) %></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- System Uptime -->
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card metric-card">
+                            <div class="card-body">
+                                <h6 class="card-title text-muted mb-2">
+                                    <i class="fas fa-clock me-1"></i>Uptime
+                                </h6>
+                                <h3 class="text-info mb-1"><%= formatUptime(latest.uptime) %></h3>
+                                <small class="text-muted">
+                                    <i class="fas fa-sync-alt me-1"></i>
+                                    Updated: <%= timeAgo(new Date(latest.timestamp)) %>
+                                </small>
+                                <% if (latest.load_average) { 
+                                    const load = JSON.parse(latest.load_average || '[0,0,0]');
+                                %>
+                                <div class="mt-2">
+                                    <small class="text-muted">Load: <%= load[0]?.toFixed(2) || '0' %>, <%= load[1]?.toFixed(2) || '0' %>, <%= load[2]?.toFixed(2) || '0' %></small>
+                                </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Resource Information -->
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-info-circle me-2"></i>Detailed Resource Information
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="system-info-grid">
+                                    <!-- CPU Details -->
+                                    <div class="resource-card">
+                                        <h6 class="border-bottom pb-2">
+                                            <i class="fas fa-microchip me-2 text-primary"></i>Processor
+                                        </h6>
+                                        <div class="info-item">
+                                            <span class="info-label">Usage</span>
+                                            <span class="info-value <%= getUsageClass(latest.cpu_usage) %>">
+                                                <%= (latest.cpu_usage || 0).toFixed(1) %>%
+                                            </span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Cores</span>
+                                            <span class="info-value"><%= latest.cpu_cores || 'N/A' %></span>
+                                        </div>
+                                        <% if (latest.cpu_temp) { %>
+                                        <div class="info-item">
+                                            <span class="info-label">Temperature</span>
+                                            <span class="info-value <%= latest.cpu_temp > 80 ? 'usage-high' : latest.cpu_temp > 60 ? 'usage-medium' : 'usage-low' %>">
+                                                <%= latest.cpu_temp %>°C
+                                            </span>
+                                        </div>
+                                        <% } %>
+                                    </div>
+
+                                    <!-- Memory Details -->
+                                    <div class="resource-card">
+                                        <h6 class="border-bottom pb-2">
+                                            <i class="fas fa-memory me-2 text-success"></i>Memory
+                                        </h6>
+                                        <div class="info-item">
+                                            <span class="info-label">Usage</span>
+                                            <span class="info-value <%= getUsageClass(latest.memory_usage) %>">
+                                                <%= (latest.memory_usage || 0).toFixed(1) %>%
+                                            </span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Total</span>
+                                            <span class="info-value"><%= formatBytes(latest.memory_total) %></span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Used</span>
+                                            <span class="info-value"><%= formatBytes((latest.memory_usage / 100) * latest.memory_total) %></span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Free</span>
+                                            <span class="info-value"><%= formatBytes(latest.memory_free) %></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Disk Details -->
+                                    <div class="resource-card">
+                                        <h6 class="border-bottom pb-2">
+                                            <i class="fas fa-hdd me-2 text-warning"></i>Storage
+                                        </h6>
+                                        <div class="info-item">
+                                            <span class="info-label">Usage</span>
+                                            <span class="info-value <%= getUsageClass(latest.disk_usage) %>">
+                                                <%= (latest.disk_usage || 0).toFixed(1) %>%
+                                            </span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Total</span>
+                                            <span class="info-value"><%= formatBytes(latest.disk_total) %></span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Used</span>
+                                            <span class="info-value"><%= formatBytes((latest.disk_usage / 100) * latest.disk_total) %></span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Free</span>
+                                            <span class="info-value"><%= formatBytes(latest.disk_free) %></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- System Details -->
+                                    <div class="resource-card">
+                                        <h6 class="border-bottom pb-2">
+                                            <i class="fas fa-cog me-2 text-info"></i>System
+                                        </h6>
+                                        <div class="info-item">
+                                            <span class="info-label">Uptime</span>
+                                            <span class="info-value"><%= formatUptime(latest.uptime) %></span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Processes</span>
+                                            <span class="info-value"><%= latest.processes || 'N/A' %></span>
+                                        </div>
+                                        <% if (latest.os_version) { %>
+                                        <div class="info-item">
+                                            <span class="info-label">OS</span>
+                                            <span class="info-value"><%= latest.os_version %></span>
+                                        </div>
+                                        <% } %>
+                                        <div class="info-item">
+                                            <span class="info-label">Last Update</span>
+                                            <span class="info-value"><%= timeAgo(new Date(latest.timestamp)) %></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Network Statistics -->
+                <% if (latest.network_rx || latest.network_tx) { %>
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-network-wired me-2"></i>Network Activity
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="network-stats text-center">
+                                            <h6><i class="fas fa-download me-2"></i>Download</h6>
+                                            <h3><%= formatNetworkSpeed(latest.network_rx) %></h3>
+                                            <small>Received Data</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="network-stats text-center" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                                            <h6><i class="fas fa-upload me-2"></i>Upload</h6>
+                                            <h3><%= formatNetworkSpeed(latest.network_tx) %></h3>
+                                            <small>Transmitted Data</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
+
+                <!-- Historical Charts -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-chart-bar me-2"></i>Historical Trends (Last 24 Hours)
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="metricsChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
+
+                <!-- API Key -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-key me-2"></i>API Configuration
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">API Key</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" value="<%= node.api_key %>" readonly id="apiKey">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="copyApiKey()">
+                                            <i class="fas fa-copy me-2"></i>Copy
+                                        </button>
+                                        <% if (user.role === 'admin') { %>
+                                        <button class="btn btn-outline-warning" type="button" id="regenerateKey">
+                                            <i class="fas fa-sync-alt me-2"></i>Regenerate
+                                        </button>
+                                        <% } %>
+                                    </div>
+                                </div>
+                                <div class="alert alert-info">
+                                    <small>
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Use this API key in your monitoring agent configuration. Keep it secure and never share it publicly.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Alerts -->
+                <% if (alerts.length > 0) { %>
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-bell me-2"></i>Recent Alerts
+                                </h5>
+                                <span class="badge bg-<%= alerts.filter(a => !a.resolved).length > 0 ? 'warning' : 'success' %>">
+                                    <%= alerts.filter(a => !a.resolved).length %> Active
+                                </span>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-sm mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Type</th>
+                                                <th>Message</th>
+                                                <th>Severity</th>
+                                                <th>Date</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% alerts.forEach(function(alert) { %>
+                                            <tr class="<%= alert.resolved ? '' : 'table-warning' %>">
+                                                <td>
+                                                    <i class="fas fa-<%= getAlertIcon(alert.type) %> me-2"></i>
+                                                    <%= alert.type %>
+                                                </td>
+                                                <td><%= alert.message %></td>
+                                                <td>
+                                                    <span class="badge bg-<%= getSeverityClass(alert.severity) %>">
+                                                        <%= alert.severity %>
+                                                    </span>
+                                                </td>
+                                                <td><%= new Date(alert.created_at).toLocaleString() %></td>
+                                                <td>
+                                                    <% if (alert.resolved) { %>
+                                                        <span class="badge bg-success">
+                                                            <i class="fas fa-check me-1"></i>Resolved
+                                                        </span>
+                                                    <% } else { %>
+                                                        <span class="badge bg-warning">
+                                                            <i class="fas fa-exclamation me-1"></i>Active
+                                                        </span>
+                                                    <% } %>
+                                                </td>
+                                                <td>
+                                                    <% if (!alert.resolved && ['admin', 'manager'].includes(user.role)) { %>
+                                                    <button class="btn btn-sm btn-outline-success resolve-alert" data-id="<%= alert.id %>">
+                                                        <i class="fas fa-check me-1"></i>Resolve
+                                                    </button>
+                                                    <% } %>
+                                                </td>
+                                            </tr>
+                                            <% }); %>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Copy API key to clipboard
+        function copyApiKey() {
+            const apiKeyInput = document.getElementById('apiKey');
+            apiKeyInput.select();
+            apiKeyInput.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            
+            // Show feedback
+            const originalText = event.target.innerHTML;
+            event.target.innerHTML = '<i class="fas fa-check me-2"></i>Copied!';
+            setTimeout(() => {
+                event.target.innerHTML = originalText;
+            }, 2000);
+        }
+
+        // Delete node
+        document.querySelector('.delete-node')?.addEventListener('click', function() {
+            const nodeId = this.getAttribute('data-id');
+            const nodeName = this.getAttribute('data-name');
+            
+            if (confirm(`Are you sure you want to delete node "${nodeName}"? This will permanently remove all associated data and cannot be undone.`)) {
+                fetch(`/admin/nodes/delete/${nodeId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = '/admin/nodes';
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                });
+            }
+        });
+
+        // Regenerate API key
+        document.getElementById('regenerateKey')?.addEventListener('click', function() {
+            if (confirm('Are you sure you want to regenerate the API key? The current key will become invalid immediately and any monitoring agents using it will stop working.')) {
+                const nodeId = '<%= node.id %>';
+                fetch(`/admin/nodes/regenerate-key/${nodeId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('API key regenerated successfully! Update your monitoring agents with the new key.');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                });
+            }
+        });
+
+        // Resolve alert
+        document.querySelectorAll('.resolve-alert').forEach(button => {
+            button.addEventListener('click', function() {
+                const alertId = this.getAttribute('data-id');
+                fetch(`/admin/alerts/resolve/${alertId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error resolving alert');
+                    }
+                });
+            });
+        });
+
+        // Initialize charts if stats available
+        <% if (stats.length > 0) { %>
+        const ctx = document.getElementById('metricsChart')?.getContext('2d');
+        if (ctx) {
+            // Sample chart data - in real implementation, you'd use actual historical data
+            const chartData = {
+                labels: ['6h ago', '5h ago', '4h ago', '3h ago', '2h ago', '1h ago', 'Now'],
+                datasets: [
+                    {
+                        label: 'CPU Usage %',
+                        data: [25, 30, 45, 60, 55, 40, <%= (stats[0].cpu_usage || 0).toFixed(1) %>],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Memory Usage %',
+                        data: [40, 45, 50, 55, 60, 65, <%= (stats[0].memory_usage || 0).toFixed(1) %>],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Disk Usage %',
+                        data: [65, 66, 67, 68, 69, 70, <%= (stats[0].disk_usage || 0).toFixed(1) %>],
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        tension: 0.4
+                    }
+                ]
+            };
+
+            new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Usage Percentage'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        <% } %>
+    </script>
+</body>
+</html>
+
+<% 
+// Helper functions
+function getUsageClass(usage) {
+    if (usage >= 90) return 'usage-high';
+    if (usage >= 70) return 'usage-medium';
+    return 'usage-low';
+}
+
+function getUsageLevel(usage) {
+    if (usage >= 90) return 'High';
+    if (usage >= 70) return 'Medium';
+    return 'Low';
+}
+
+function formatBytes(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function formatNetworkSpeed(bytesPerSecond) {
+    if (!bytesPerSecond || bytesPerSecond === 0) return '0 B/s';
+    const k = 1024;
+    const sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
+    const i = Math.floor(Math.log(bytesPerSecond) / Math.log(k));
+    return parseFloat((bytesPerSecond / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function formatUptime(seconds) {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (days > 0) {
+        return `${days}d ${hours}h ${minutes}m`;
+    } else if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+        return `${minutes}m`;
+    } else {
+        return '<1m';
+    }
+}
+
+function timeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    let interval = seconds / 31536000;
+    
+    if (interval > 1) return Math.floor(interval) + " years ago";
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + " months ago";
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + " days ago";
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + " hours ago";
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + " minutes ago";
+    return Math.floor(seconds) + " seconds ago";
+}
+
+function getAlertIcon(type) {
+    switch(type) {
+        case 'cpu_high': return 'microchip';
+        case 'memory_high': return 'memory';
+        case 'disk_high': return 'hdd';
+        case 'offline': return 'server';
+        default: return 'exclamation-triangle';
+    }
+}
+
+function getSeverityClass(severity) {
+    switch(severity) {
+        case 'critical': return 'danger';
+        case 'high': return 'danger';
+        case 'warning': return 'warning';
+        default: return 'info';
+    }
+}
+%>

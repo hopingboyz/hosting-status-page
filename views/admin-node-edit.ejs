@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit <%= node.name %> - VPS Monitor Pro+</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: <%= settings.primary_color || '#6366f1' %>;
+        }
+        .sidebar {
+            background: #1a1c23;
+            min-height: 100vh;
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: #b0b3b8;
+            padding: 0.75rem 1rem;
+            margin: 0.25rem 0;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: var(--primary-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-0">
+                <div class="p-3">
+                    <h4 class="text-center mb-4">
+                        <i class="fas fa-server me-2"></i>VPS Monitor
+                    </h4>
+                    
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin">
+                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/nodes">
+                                <i class="fas fa-server me-2"></i>Nodes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/alerts">
+                                <i class="fas fa-bell me-2"></i>Alerts
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/users">
+                                <i class="fas fa-users me-2"></i>Users
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/settings">
+                                <i class="fas fa-cog me-2"></i>Settings
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/audit">
+                                <i class="fas fa-clipboard-list me-2"></i>Audit Logs
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/profile">
+                                <i class="fas fa-user me-2"></i>Profile
+                            </a>
+                        </li>
+                        <li class="nav-item mt-3">
+                            <a class="nav-link text-danger" href="/admin/logout">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-sm-auto px-4">
+                <!-- Navbar -->
+                <nav class="navbar navbar-light bg-white border-bottom py-3">
+                    <div class="container-fluid">
+                        <div class="d-flex align-items-center">
+                            <a href="/admin/nodes/view/<%= node.id %>" class="btn btn-outline-secondary btn-sm me-2">
+                                <i class="fas fa-arrow-left"></i>
+                            </a>
+                            <span class="navbar-brand">
+                                <i class="fas fa-edit me-2"></i>Edit <%= node.name %>
+                            </span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span class="me-3">Welcome, <%= user.full_name %></span>
+                            <img src="<%= user.avatar || '/img/default-avatar.png' %>" alt="Avatar" class="rounded-circle" width="40" height="40">
+                        </div>
+                    </div>
+                </nav>
+
+                <!-- Edit Form -->
+                <div class="row mt-4">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Node Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <form method="POST" action="/admin/nodes/edit/<%= node.id %>">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Node Name *</label>
+                                            <input type="text" class="form-control" name="name" value="<%= node.name %>" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Hostname</label>
+                                            <input type="text" class="form-control" name="hostname" value="<%= node.hostname || '' %>">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">IP Alias</label>
+                                            <input type="text" class="form-control" name="ip_alias" value="<%= node.ip_alias || '' %>">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Location</label>
+                                            <input type="text" class="form-control" name="location" value="<%= node.location || 'Unknown' %>">
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Group Tags</label>
+                                        <input type="text" class="form-control" name="group_tags" 
+                                               value="<%= node.group_tags.join(', ') %>" 
+                                               placeholder="web, database, backup">
+                                        <small class="text-muted">Comma-separated list of groups or tags</small>
+                                    </div>
+
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="public" 
+                                                       <%= node.public ? 'checked' : '' %>>
+                                                <label class="form-check-label">Public Node</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="status_page_visible" 
+                                                       <%= node.status_page_visible ? 'checked' : '' %>>
+                                                <label class="form-check-label">Show on Status Page</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" 
+                                                       <%= node.monitor_type === 'ping' ? 'checked' : '' %> disabled>
+                                                <label class="form-check-label">Monitor Type: <%= node.monitor_type %></label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between">
+                                        <a href="/admin/nodes/view/<%= node.id %>" class="btn btn-secondary">Cancel</a>
+                                        <button type="submit" class="btn btn-primary">Update Node</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <!-- Node Status -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">Node Status</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <strong>Status:</strong>
+                                    <% if (node.is_online) { %>
+                                        <span class="badge bg-success">Online</span>
+                                    <% } else { %>
+                                        <span class="badge bg-danger">Offline</span>
+                                    <% } %>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Last Seen:</strong><br>
+                                    <small><%= node.last_seen ? new Date(node.last_seen).toLocaleString() : 'Never' %></small>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Created:</strong><br>
+                                    <small><%= new Date(node.created_at).toLocaleString() %></small>
+                                </div>
+                                <div>
+                                    <strong>Updated:</strong><br>
+                                    <small><%= new Date(node.updated_at).toLocaleString() %></small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Danger Zone -->
+                        <% if (user.role === 'admin') { %>
+                        <div class="card border-danger">
+                            <div class="card-header bg-danger text-white">
+                                <h6 class="card-title mb-0">Danger Zone</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="small text-muted">
+                                    Deleting this node will remove all associated statistics and alerts.
+                                </p>
+                                <button class="btn btn-outline-danger btn-sm w-100 delete-node" 
+                                        data-id="<%= node.id %>" 
+                                        data-name="<%= node.name %>">
+                                    <i class="fas fa-trash me-2"></i>Delete Node
+                                </button>
+                            </div>
+                        </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Delete node
+        document.querySelector('.delete-node')?.addEventListener('click', function() {
+            const nodeId = this.getAttribute('data-id');
+            const nodeName = this.getAttribute('data-name');
+            
+            if (confirm(`Permanently delete node "${nodeName}" and all its data?`)) {
+                fetch(`/admin/nodes/delete/${nodeId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = '/admin/nodes';
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

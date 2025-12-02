@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerts - VPS Monitor Pro+</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: <%= settings.primary_color || '#6366f1' %>;
+        }
+        .sidebar {
+            background: #1a1c23;
+            min-height: 100vh;
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: #b0b3b8;
+            padding: 0.75rem 1rem;
+            margin: 0.25rem 0;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: var(--primary-color);
+            color: white;
+        }
+        .alert-critical { border-left: 4px solid #dc3545; }
+        .alert-high { border-left: 4px solid #fd7e14; }
+        .alert-warning { border-left: 4px solid #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-0">
+                <div class="p-3">
+                    <h4 class="text-center mb-4">
+                        <i class="fas fa-server me-2"></i>VPS Monitor
+                    </h4>
+                    
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin">
+                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/nodes">
+                                <i class="fas fa-server me-2"></i>Nodes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/admin/alerts">
+                                <i class="fas fa-bell me-2"></i>Alerts
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/users">
+                                <i class="fas fa-users me-2"></i>Users
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/settings">
+                                <i class="fas fa-cog me-2"></i>Settings
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/audit">
+                                <i class="fas fa-clipboard-list me-2"></i>Audit Logs
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/profile">
+                                <i class="fas fa-user me-2"></i>Profile
+                            </a>
+                        </li>
+                        <li class="nav-item mt-3">
+                            <a class="nav-link text-danger" href="/admin/logout">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-sm-auto px-4">
+                <!-- Navbar -->
+                <nav class="navbar navbar-light bg-white border-bottom py-3">
+                    <div class="container-fluid">
+                        <span class="navbar-brand">
+                            <i class="fas fa-bell me-2"></i>Alerts Management
+                        </span>
+                        <div class="d-flex align-items-center">
+                            <span class="me-3">Welcome, <%= user.full_name %></span>
+                            <img src="<%= user.avatar || '/img/default-avatar.png' %>" alt="Avatar" class="rounded-circle" width="40" height="40">
+                        </div>
+                    </div>
+                </nav>
+
+                <!-- Alert Filters -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Status</label>
+                                        <select class="form-select" id="statusFilter">
+                                            <option value="all">All Alerts</option>
+                                            <option value="active">Active Only</option>
+                                            <option value="resolved">Resolved Only</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Severity</label>
+                                        <select class="form-select" id="severityFilter">
+                                            <option value="all">All Severities</option>
+                                            <option value="critical">Critical</option>
+                                            <option value="high">High</option>
+                                            <option value="warning">Warning</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Type</label>
+                                        <select class="form-select" id="typeFilter">
+                                            <option value="all">All Types</option>
+                                            <option value="offline">Offline</option>
+                                            <option value="cpu_high">CPU High</option>
+                                            <option value="memory_high">Memory High</option>
+                                            <option value="disk_high">Disk High</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">&nbsp;</label>
+                                        <div>
+                                            <button class="btn btn-outline-secondary w-100" id="clearFilters">
+                                                <i class="fas fa-times me-2"></i>Clear Filters
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alerts List -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-list me-2"></i>Alerts
+                                    <span class="badge bg-primary ms-2" id="alertCount"><%= alerts.length %></span>
+                                </h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <% if (alerts.length === 0) { %>
+                                <div class="text-center py-5">
+                                    <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                                    <h5>No Alerts Found</h5>
+                                    <p class="text-muted">All systems are operating normally.</p>
+                                </div>
+                                <% } else { %>
+                                <div class="list-group list-group-flush">
+                                    <% alerts.forEach(function(alert) { %>
+                                    <div class="list-group-item alert-item" 
+                                         data-status="<%= alert.resolved ? 'resolved' : 'active' %>"
+                                         data-severity="<%= alert.severity %>"
+                                         data-type="<%= alert.type %>">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-1 text-center">
+                                                <% if (alert.severity === 'critical') { %>
+                                                    <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                                                <% } else if (alert.severity === 'high') { %>
+                                                    <i class="fas fa-exclamation-circle fa-2x text-warning"></i>
+                                                <% } else { %>
+                                                    <i class="fas fa-info-circle fa-2x text-info"></i>
+                                                <% } %>
+                                            </div>
+                                            <div class="col-md-7">
+                                                <h6 class="mb-1">
+                                                    <%= alert.node_name || 'Unknown Node' %>
+                                                    <span class="badge bg-<%= alert.severity === 'critical' ? 'danger' : alert.severity === 'high' ? 'warning' : 'info' %> ms-2">
+                                                        <%= alert.severity %>
+                                                    </span>
+                                                    <% if (alert.resolved) { %>
+                                                        <span class="badge bg-success ms-1">Resolved</span>
+                                                    <% } %>
+                                                </h6>
+                                                <p class="mb-1"><%= alert.message %></p>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    <%= new Date(alert.created_at).toLocaleString() %>
+                                                    <% if (alert.resolved_at) { %>
+                                                        • Resolved: <%= new Date(alert.resolved_at).toLocaleString() %>
+                                                    <% } %>
+                                                </small>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <span class="badge bg-secondary"><%= alert.type %></span>
+                                            </div>
+                                            <div class="col-md-2 text-end">
+                                                <% if (!alert.resolved) { %>
+                                                <button class="btn btn-success btn-sm resolve-alert" 
+                                                        data-id="<%= alert.id %>">
+                                                    <i class="fas fa-check me-1"></i>Resolve
+                                                </button>
+                                                <% } else { %>
+                                                <span class="text-success">
+                                                    <i class="fas fa-check-circle me-1"></i>Resolved
+                                                </span>
+                                                <% } %>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <% }); %>
+                                </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alert Statistics -->
+                <div class="row mt-4">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4 id="totalAlerts"><%= alerts.length %></h4>
+                                        <p class="mb-0">Total Alerts</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-bell fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4 id="activeAlerts"><%= alerts.filter(a => !a.resolved).length %></h4>
+                                        <p class="mb-0">Active Alerts</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4 id="criticalAlerts"><%= alerts.filter(a => a.severity === 'critical' && !a.resolved).length %></h4>
+                                        <p class="mb-0">Critical</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-skull-crossbones fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4 id="resolvedAlerts"><%= alerts.filter(a => a.resolved).length %></h4>
+                                        <p class="mb-0">Resolved</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-check-circle fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Filter alerts
+        function filterAlerts() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const severityFilter = document.getElementById('severityFilter').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+            
+            const alertItems = document.querySelectorAll('.alert-item');
+            let visibleCount = 0;
+            let activeCount = 0;
+            let criticalCount = 0;
+            let resolvedCount = 0;
+
+            alertItems.forEach(item => {
+                const status = item.getAttribute('data-status');
+                const severity = item.getAttribute('data-severity');
+                const type = item.getAttribute('data-type');
+                
+                const statusMatch = statusFilter === 'all' || status === statusFilter;
+                const severityMatch = severityFilter === 'all' || severity === severityFilter;
+                const typeMatch = typeFilter === 'all' || type === typeFilter;
+                
+                if (statusMatch && severityMatch && typeMatch) {
+                    item.style.display = 'block';
+                    visibleCount++;
+                    
+                    if (status === 'active') activeCount++;
+                    if (severity === 'critical' && status === 'active') criticalCount++;
+                    if (status === 'resolved') resolvedCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            // Update counters
+            document.getElementById('alertCount').textContent = visibleCount;
+            document.getElementById('totalAlerts').textContent = visibleCount;
+            document.getElementById('activeAlerts').textContent = activeCount;
+            document.getElementById('criticalAlerts').textContent = criticalCount;
+            document.getElementById('resolvedAlerts').textContent = resolvedCount;
+        }
+
+        // Event listeners for filters
+        document.getElementById('statusFilter').addEventListener('change', filterAlerts);
+        document.getElementById('severityFilter').addEventListener('change', filterAlerts);
+        document.getElementById('typeFilter').addEventListener('change', filterAlerts);
+        
+        document.getElementById('clearFilters').addEventListener('click', function() {
+            document.getElementById('statusFilter').value = 'all';
+            document.getElementById('severityFilter').value = 'all';
+            document.getElementById('typeFilter').value = 'all';
+            filterAlerts();
+        });
+
+        // Resolve alert
+        document.querySelectorAll('.resolve-alert').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const alertId = this.getAttribute('data-id');
+                
+                if (confirm('Mark this alert as resolved?')) {
+                    fetch(`/admin/alerts/resolve/${alertId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert('Error resolving alert: ' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error resolving alert');
+                    });
+                }
+            });
+        });
+
+        // Initialize filters
+        filterAlerts();
+    </script>
+</body>
+</html>
