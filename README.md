@@ -1,63 +1,105 @@
-# VPS Monitor Pro+ 🚀
+# VPS Monitor Pro+ Ultimate Setup Guide 🚀
 
-**VPS Monitor Pro+ v1.0 Ultimate Edition** - A comprehensive, real-time server monitoring dashboard with advanced features and enhanced security.
+## 📦 PREREQUISITES
 
-## ✨ Features
+### Update System
+sudo apt update && sudo apt upgrade -y
 
-### 🔥 Core Features
-- **Real-time Monitoring**: Live CPU, RAM, Disk, Network usage
-- **Multi-Node Support**: Monitor unlimited servers/nodes
-- **WebSocket Updates**: Real-time dashboard updates
-- **Public Status Page**: Shareable status page for your infrastructure
-- **Role-Based Access**: Admin, Manager, and Viewer roles
-- **Responsive Design**: Works on desktop and mobile
+### Install Node.js (v18+)
+curl -sL https://deb.nodesource.com/setup_23.x | sudo bash -
+sudo apt install -y nodejs
 
-### 🆕 Ultimate Edition Enhancements
-- **Admin Profile Management**: Edit username, password, avatar
-- **Enhanced Node Metrics**: CPU cores, detailed RAM/Disk, live RX/TX speeds
-- **Smart Alert System**: Threshold-based alerts with auto-resolution
-- **Node Groups & Tags**: Organize nodes with tags
-- **Data Export**: Export nodes, stats, users, alerts as CSV/JSON
-- **Audit Logs**: Complete audit trail for all actions
-- **Improved Security**: Enhanced validation, rate limiting, CSP headers
-- **Performance Optimizations**: Database indexes, caching, query optimization
+### Verify Installation
+node --version
+npm --version
 
-## 🚀 Quick Start
+### Install Git
+sudo apt install git -y
 
-### Prerequisites
-- **Node.js** 16.x or higher
-- **npm** 8.x or higher
-- Git
+## 🚀 INSTALLATION STEPS
 
-### Installation
+### 1. Clone Repository
+git clone https://github.com/hopingboyz/hosting-status-page
 
-1. **Clone the Repository**
-```bash
-git clone https://github.com/yourusername/vps-monitor-pro-plus.git
-cd vps-monitor-pro-plus
-Install Dependencies
+### 2. Navigate to Directory
+cd hosting-status-page
 
-bash
+### 3. Install Dependencies
 npm install
-Start the Application
 
-bash
+## 🎯 STARTING THE APPLICATION
+
+### OPTION A: Direct Start (Development)
 npm start
-For development with auto-restart:
 
-bash
-npm run dev
-Access the Dashboard
+### Install PM2 Globally
+npm install pm2@latest -g
 
-Open your browser and go to: http://localhost:3000
+### Start Application with PM2
+pm2 start app.js
 
-Admin Panel: http://localhost:3000/admin
+### Save PM2 Configuration
+pm2 save
 
-Public Status Page: http://localhost:3000/status
+### Setup PM2 to Auto-start on Boot
+pm2 startup
 
-Default Credentials
-Username: admin
+### Follow the instructions provided by the above command, then:
+pm2 save
 
-Password: admin123
+### Check Application Status
+pm2 status
 
-⚠️ IMPORTANT: Change the default password immediately after first login!
+## 🎯 QUICK INSTALL SCRIPT
+
+### Save as install.sh:
+#!/bin/bash
+echo "Installing VPS Monitor Pro+..."
+git clone https://github.com/hopingboyz/hosting-status-page
+cd hosting-status-page
+npm install
+npm install -g pm2
+pm2 start server.js --name "vps-monitor-pro"
+pm2 save
+pm2 startup
+echo "Installation complete! Access at: http://localhost:3000"
+
+
+### Health Check Endpoint
+http://localhost:3000/api/health
+
+### System Requirements:
+- Minimum: 1GB RAM, 10GB Disk
+- Recommended: 2GB RAM, 20GB Disk
+- Node.js: v16 or higher
+- Database: SQLite (included)
+
+## 📋 POST-INSTALLATION CHECKLIST
+
+✅ Update default admin password
+✅ Configure environment variables
+✅ Setup firewall rules
+✅ Configure domain name (optional)
+✅ Setup SSL certificate (optional)
+✅ Configure backup schedule
+✅ Add monitoring nodes
+✅ Test alerts and notifications
+✅ Verify data export functionality
+✅ Check audit logs are working
+
+## 🎉 CONGRATULATIONS!
+
+Your VPS Monitor Pro+ is now installed and running!
+
+Next Steps:
+1. Login and change admin password
+2. Add your first monitoring node
+3. Configure alert thresholds
+4. Setup email/Slack notifications
+5. Share status page with your team
+
+For updates and documentation, visit:
+https://github.com/hopingboyz/hosting-status-page
+
+Support: support@yourcompany.com
+Documentation: https://docs.yourdomain.com
