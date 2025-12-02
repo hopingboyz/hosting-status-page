@@ -50,21 +50,6 @@ pm2 save
 ### Check Application Status
 pm2 status
 
-## 🎯 QUICK INSTALL SCRIPT
-
-### Save as install.sh:
-#!/bin/bash
-echo "Installing VPS Monitor Pro+..."
-git clone https://github.com/hopingboyz/hosting-status-page
-cd hosting-status-page
-npm install
-npm install -g pm2
-pm2 start server.js --name "vps-monitor-pro"
-pm2 save
-pm2 startup
-echo "Installation complete! Access at: http://localhost:3000"
-
-
 ### Health Check Endpoint
 http://localhost:3000/api/health
 
